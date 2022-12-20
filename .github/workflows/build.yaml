@@ -28,4 +28,4 @@ jobs:
           docker buildx build \
             --push \
             --platform linux/arm/v7,linux/amd64 \
-            -t ghcr.io/2022-4400-exp/4499-go-helloworld-2:${{ github.sha }} .
+            -t ghcr.io/2022-4400-exp/4434-go-helloworld-2:${{ github.sha }} .
