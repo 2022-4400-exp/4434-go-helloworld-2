@@ -1,5 +1,8 @@
 name: "Build"
-on: [push]
+on:
+  push:
+    paths-ignore:
+      - "manifest/**"
 
 jobs:
   Build:
@@ -23,9 +26,24 @@ jobs:
           buildx-version: latest
           qemu-version: latest
 
-      - name: Build and Publish
+      - name: Build Docker image
         run: |
-          docker buildx build \
-            --push \
-            --platform linux/arm/v7,linux/amd64 \
-            -t ghcr.io/2022-4400-exp/4434-go-helloworld-2:${{ github.sha }} .
+          docker buildx build --platform linux/amd64,linux/arm/v7 . -t ghcr.io/2022-4400-exp/4434-go-helloworld-2:${{ github.sha }} --push
+
+
+      - name: Update manifest image tag
+        id: update-image-tag
+        continue-on-error: true
+        run: |
+          yq eval '.spec.template.spec.containers[0].image = "ghcr.io/2022-4400-exp/4434-go-helloworld-2:"+env(GITHUB_SHA)' -i ./manifest/deployment.yaml
+          git diff --name-only --exit-code
+
+
+      - name: Commit/Push manifest
+        if: steps.update-image-tag.outcome == 'failure'
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit --author=. -m "Update image tag to $GITHUB_SHA"
+          git push
